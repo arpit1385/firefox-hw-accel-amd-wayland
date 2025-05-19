@@ -388,7 +388,9 @@ If you want **clicking “Firefox” in your KDE (Plasma) application menu** to 
 
 ### Author
 
-*Documented by [Your Name or GitHub Handle]*  
+*Documented by arpit1385*  
+GitHub: [https://github.com/arpit1385/](https://github.com/arpit1385/)
+
 Based on troubleshooting steps for hybrid NVIDIA + AMD laptop on Linux (e.g. Nobara, Fedora, Ubuntu).  
 
 Feel free to open issues or pull requests if you spot inaccuracies or want to suggest improvements!
