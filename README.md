@@ -33,10 +33,8 @@ Use this README as a reference when you face poor video performance or high CPU 
 
 If Firefox’s `about:support` page shows:
 
-```
-Hardware Video Decoding: unavailable
-All hardware decoding not supported
-```
+![Before enabling VA‑API: Firefox Graphics Info](Screenshots/ff_before.png)
+> ⚠️ Firefox shows **Hardware Video Decoding: unavailable** and **WebRender: disabled**
 
 or if playing a high‑resolution video (e.g. YouTube 1080p/4K) consumes 100% CPU, then Firefox is not using your GPU to decode. On hybrid NVIDIA/AMD laptops, you often need to force Firefox to use the AMD iGPU’s Mesa/VA‑API driver (rather than attempting the broken NVIDIA VA‑API plugin).
 
@@ -62,6 +60,7 @@ Typical red flags:
 
 If it reads “blocked” or “no,” proceed to identify why.
 
+
 ---
 
 ## Step 2: Identify Installed GPUs
@@ -73,13 +72,15 @@ lspci | grep -i vga
 ```
 
 Typical output on a dual‑GPU laptop:
-```
-01:00.0 VGA compatible controller: NVIDIA Corporation AD107M [GeForce RTX 4060 Max‑Q / Mobile] (rev a1)
-06:00.0 VGA compatible controller: Advanced Micro Devices, Inc. [AMD/ATI] Phoenix3 (rev c5)
-```
+
+![Detected GPUs via lspci](Screenshots/lspci.png)
+> 🖥️ Detected both NVIDIA (discrete) and AMD (integrated) GPUs.
+
 
 - The **NVIDIA** device is often *not* VA‑API‑friendly on Linux (unless you compile and install a special `nvidia‑vaapi‑driver`).
 - The **AMD Phoenix3** (integrated GPU) usually works out‑of‑the‑box via Mesa’s VA‑API.
+
+
 
 ---
 
@@ -104,12 +105,8 @@ vainfo
 
 ### Common “Bad” Output (trying NVIDIA):
 
-```
-libva info: User environment variable requested driver 'nvidia'
-libva info: Trying to open /usr/lib64/dri‑nonfree/nvidia_drv_video.so
-libva error: ... nvidia_drv_video.so init failed
-vaInitialize failed with error code 1 (operation failed),exit
-```
+![vainfo output failing with NVIDIA](Screenshots/vainfo.png)
+> ❌ `vainfo` tries to use `nvidia_drv_video.so` but fails to initialize VA‑API.
 
 This means **VA‑API is trying to load `nvidia_drv_video.so`**, but it fails. Firefox will then claim “hardware decoding not supported.”
 
@@ -154,18 +151,9 @@ vainfo
 
 Good output should look roughly like:
 
-```
-libva info: VA‑API version 1.22.0
-libva info: Trying to open /usr/lib64/dri/radeonsi_drv_video.so
-libva info: Found init function __vaDriverInit_1_0
-vainfo: VA‑API version: 1.22 (libva 2.11.0)
-vainfo: Driver version: Mesa gallium 23.3.1
-Supported profile and entrypoints:
-  VAProfileH264        :	VAEntrypointVLD
-  VAProfileH264        :	VAEntrypointEncSlice
-  VAProfileHEVC        :	VAEntrypointVLD
-  ...
-```
+![Successful vainfo using radeonsi](Screenshots/vainfo.png)
+> ✅ VA‑API successfully initialized using AMD's `radeonsi` Mesa driver.
+
 
 - **If you see Mesa/“radeonsi” driver** after “Trying to open…”, VA‑API is now functional on the AMD iGPU.
 - **If it still fails**, double‑check that you have `mesa‑va‑drivers` installed and that no stale NVIDIA VA‑API libraries remain in `/usr/lib64/dri/`.
@@ -179,6 +167,9 @@ Now that VA‑API works on the AMD iGPU, you must launch Firefox so that:
 1. **Firefox runs on Wayland** (to get WebRender).  
 2. **Firefox uses the AMD iGPU’s VA‑API driver**.  
 3. **(Optional) Skip the “profile downgrade” warning** if you switch versions frequently.
+
+![After: Firefox Hardware Acceleration Enabled](Screenshots/FF_after.png)
+> ✅ Firefox shows **Hardware Video Decoding: active** and **WebRender: force_enabled**
 
 The minimal command becomes:
 
@@ -233,6 +224,10 @@ Rather than remembering that long command every time, create a small script in `
    exec /usr/bin/firefox "$@"
    ```
 
+   ![Editing wrapper script in nano](Screenshots/nano.png)
+  > 📝 Wrapper script ensures Firefox always uses AMD VA‑API, Wayland, and WebRender.
+
+   
    > Adjust `/usr/bin/firefox` if your system’s binary path differs (e.g. `/opt/firefox/firefox`).
 
 3. **Make it executable:**
@@ -306,7 +301,10 @@ If you want **clicking “Firefox” in your KDE (Plasma) application menu** to 
      ```
      (Again, replace `/usr/bin/firefox` if your binary is elsewhere.)
    - **Comment/GenericName/Icon** can remain unchanged or be adjusted.
-
+   
+![Custom Firefox Wayland Desktop Entry in KDE Menu](Screenshots/KDE_Menu.png)
+> 🖱️ KDE menu now launches Firefox with AMD VA‑API and Wayland enabled.
+   
 5. **Save and close.**
 
 6. **Refresh the desktop database** (so KDE sees the new entry):
